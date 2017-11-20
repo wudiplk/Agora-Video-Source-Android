@@ -35,7 +35,6 @@ public class VideoChatViewActivity extends AppCompatActivity {
     private static final int PERMISSION_REQ_ID_CAMERA = PERMISSION_REQ_ID_RECORD_AUDIO + 1;
 
     private CustomizedCameraRenderer mCustomizedCameraRenderer; // Tutorial Step 3
-
     private RtcEngine mRtcEngine;// Tutorial Step 1
     private final IRtcEngineEventHandler mRtcEventHandler = new IRtcEngineEventHandler() { // Tutorial Step 1
         @Override
@@ -182,7 +181,6 @@ public class VideoChatViewActivity extends AppCompatActivity {
         } else {
             throw new RuntimeException("Can not work on device do not supporting texture" + mRtcEngine.isTextureEncodeSupported());
         }
-
         mRtcEngine.setVideoProfile(Constants.VIDEO_PROFILE_480P, true);
     }
 
@@ -255,7 +253,6 @@ public class VideoChatViewActivity extends AppCompatActivity {
         SurfaceView surfaceView = RtcEngine.CreateRendererView(getBaseContext());
         container.addView(surfaceView);
         mRtcEngine.setupRemoteVideo(new VideoCanvas(surfaceView, VideoCanvas.RENDER_MODE_ADAPTIVE, uid));
-
         surfaceView.setTag(uid); // for mark purpose
         View tipMsg = findViewById(R.id.quick_tips_when_use_agora_sdk); // optional UI
         tipMsg.setVisibility(View.GONE);
@@ -273,5 +270,19 @@ public class VideoChatViewActivity extends AppCompatActivity {
 
         View tipMsg = findViewById(R.id.quick_tips_when_use_agora_sdk); // optional UI
         tipMsg.setVisibility(View.VISIBLE);
+    }
+
+
+    public void onLocalViewHidden(View view) {
+        ImageView iv = (ImageView) view;
+        if (iv.isSelected()) {
+            iv.setSelected(false);
+            iv.clearColorFilter();
+            mCustomizedCameraRenderer.setViewHiddenStatus(false);
+        } else {
+            iv.setSelected(true);
+            iv.setColorFilter(getResources().getColor(R.color.colorPrimary), PorterDuff.Mode.MULTIPLY);
+            mCustomizedCameraRenderer.setViewHiddenStatus(true);
+        }
     }
 }

@@ -16,16 +16,16 @@ import android.util.Log;
 import android.view.Surface;
 import android.view.WindowManager;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.Locale;
+
 import javax.microedition.khronos.egl.EGL10;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.egl.EGLContext;
 import javax.microedition.khronos.egl.EGLDisplay;
 import javax.microedition.khronos.opengles.GL10;
-
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.List;
-import java.util.Locale;
 
 public class CustomizedCameraRenderer extends GLSurfaceView implements
         GLSurfaceView.Renderer,
@@ -34,7 +34,7 @@ public class CustomizedCameraRenderer extends GLSurfaceView implements
     private static final String LOG_TAG = "CustomizedRenderer";
 
     private static final boolean DBG = false;
-
+    private boolean isSetViewHidden = false;
     private EGLContext mEGLCurrentContext;
 
     private static class MyContextFactory implements EGLContextFactory {
@@ -139,6 +139,7 @@ public class CustomizedCameraRenderer extends GLSurfaceView implements
         setPreserveEGLContextOnPause(true);
         setEGLContextClientVersion(2);
         setRenderer(this);
+
         setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
 
         setDebugFlags(DEBUG_LOG_GL_CALLS);
@@ -226,9 +227,19 @@ public class CustomizedCameraRenderer extends GLSurfaceView implements
         Camera.Parameters param = mCamera.getParameters();
         List<Size> psize = param.getSupportedPreviewSizes();
         if (psize.size() > 0) {
-            // TODO should read it from Camera
-            mCameraPreviewWidth = 1280;
-            mCameraPreviewHeight = 720;
+            boolean supports_640_480 = false;
+            for (int i = 0; i < psize.size(); i++) {
+                if ((psize.get(i).width == 640) && (psize.get(i).height == 480)) {
+                    supports_640_480 = true;
+                }
+            }
+            if (supports_640_480) {
+                mCameraPreviewWidth = 640;
+                mCameraPreviewHeight = 480;
+            } else {
+                mCameraPreviewWidth = param.getSupportedPreviewSizes().get(0).width;
+                mCameraPreviewHeight = param.getSupportedPreviewSizes().get(0).height;
+            }
 
             List<int[]> supportedFPSRange = param.getSupportedPreviewFpsRange();
 
@@ -242,7 +253,6 @@ public class CustomizedCameraRenderer extends GLSurfaceView implements
                 Log.d(LOG_TAG, "setPreviewFpsRange " + supportedFPSRange.get(0)[0] + " " + defaultMaxFps);
                 param.setPreviewFpsRange(supportedFPSRange.get(0)[0], defaultMaxFps);
             }
-
             Log.d(LOG_TAG, "setPreviewSize " + mCameraPreviewWidth + " " + mCameraPreviewHeight);
             param.setPreviewSize(mCameraPreviewWidth, mCameraPreviewHeight);
         }
@@ -294,6 +304,10 @@ public class CustomizedCameraRenderer extends GLSurfaceView implements
         return 0;
     }
 
+    public void setViewHiddenStatus(boolean isHidden) {
+        this.isSetViewHidden = isHidden;
+    }
+
     @Override
     public synchronized void onDrawFrame(GL10 gl) {
         if (DBG) {
@@ -319,13 +333,14 @@ public class CustomizedCameraRenderer extends GLSurfaceView implements
         if (mUpdateTexture) {
             GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
             GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
-
             // Latch surface texture
             mSurfaceTexture.updateTexImage();
 
             // Render to FBO (TODO: resize/crop to target size)
             GLES20.glFinish();
             GLES20.glViewport(0, 0, 1080, 1920);
+
+
             GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, mFbo);
 
             mCameraToFbo.rotate(mCameraRotation);
@@ -334,8 +349,18 @@ public class CustomizedCameraRenderer extends GLSurfaceView implements
             GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
 
             // Render to this view
-            int targetWidth = (int) ((mCameraPreviewHeight * mViewHeight * 100.0f / mCameraPreviewWidth) / 100);
-            int targetHeight = mViewHeight;
+            int targetWidth;
+            int targetHeight;
+            int paddingHeight;
+            if (isSetViewHidden) {
+                targetWidth = mViewWidth;
+                targetHeight = (int) ((mCameraPreviewWidth * targetWidth * 100.0f / mCameraPreviewHeight) / 100);
+                paddingHeight = (mViewHeight - targetHeight) / 2;
+            } else {
+                targetHeight = mViewHeight;
+                targetWidth = (int) ((mCameraPreviewHeight * targetHeight * 100.0f / mCameraPreviewWidth) / 100);
+                paddingHeight = 0;
+            }
 
             // FIXME should calculate the rotation dynamically and apply mirror for correctly video displaying
             int rotation;
@@ -348,8 +373,7 @@ public class CustomizedCameraRenderer extends GLSurfaceView implements
             if (DBG) {
                 Log.d(LOG_TAG, "glViewport " + targetWidth + " " + targetHeight + " " + mViewWidth + " " + mViewHeight + " " + mCameraPreviewWidth + " " + mCameraPreviewHeight + " " + rotation);
             }
-
-            GLES20.glViewport((mViewWidth - targetWidth) / 2, 0, targetWidth, targetHeight);
+            GLES20.glViewport(0, paddingHeight, targetWidth, targetHeight);
 
             mFboToView.rotate(rotation);
 
