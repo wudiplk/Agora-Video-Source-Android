@@ -24,6 +24,7 @@ import io.agora.rtc.RtcEngine;
 import io.agora.rtc.video.AgoraVideoFrame;
 import io.agora.rtc.video.VideoCanvas;
 import io.agora.tutorials.helper.CustomizedCameraRenderer;
+import io.agora.tutorials.helper.CustomizedGPUImageRenderer;
 
 public class VideoChatViewActivity extends AppCompatActivity {
 
@@ -34,7 +35,7 @@ public class VideoChatViewActivity extends AppCompatActivity {
     private static final int PERMISSION_REQ_ID_RECORD_AUDIO = 22;
     private static final int PERMISSION_REQ_ID_CAMERA = PERMISSION_REQ_ID_RECORD_AUDIO + 1;
 
-    private CustomizedCameraRenderer mCustomizedCameraRenderer; // Tutorial Step 3
+    private CustomizedGPUImageRenderer mCustomizedGPUImageRenderer; // Tutorial Step 3
     private RtcEngine mRtcEngine;// Tutorial Step 1
     private final IRtcEngineEventHandler mRtcEventHandler = new IRtcEngineEventHandler() { // Tutorial Step 1
         @Override
@@ -133,9 +134,9 @@ public class VideoChatViewActivity extends AppCompatActivity {
         leaveChannel();
         RtcEngine.destroy();
 
-        if (mCustomizedCameraRenderer != null) {
-            mCustomizedCameraRenderer.onDestroy();
-            mCustomizedCameraRenderer = null;
+        if (mCustomizedGPUImageRenderer != null) {
+            mCustomizedGPUImageRenderer.onDestroy();
+            mCustomizedGPUImageRenderer = null;
         }
 
         mRtcEngine = null;
@@ -187,12 +188,44 @@ public class VideoChatViewActivity extends AppCompatActivity {
     private volatile boolean mJoined = false;
 
     // Tutorial Step 3
-    private CustomizedCameraRenderer setupLocalVideo(Context ctx) {
+    private CustomizedGPUImageRenderer setupLocalVideo(Context ctx) {
         FrameLayout container = (FrameLayout) findViewById(R.id.local_video_view_container);
-        CustomizedCameraRenderer surfaceV = new CustomizedCameraRenderer(ctx);
+        CustomizedGPUImageRenderer surfaceV = new CustomizedGPUImageRenderer(ctx);
 
-        mCustomizedCameraRenderer = surfaceV;
-        mCustomizedCameraRenderer.setOnFrameAvailableHandler(new CustomizedCameraRenderer.OnFrameAvailableListener() {
+        mCustomizedGPUImageRenderer = surfaceV;
+        mCustomizedGPUImageRenderer.setOnFrameAvailableHandler(new CustomizedGPUImageRenderer.OnFrameAvailableListener() {
+            @Override
+            public void onFrameAvailable(int texture, EGLContext eglContext, int rotation, float[] transform) {
+                AgoraVideoFrame vf = new AgoraVideoFrame();
+                vf.format = AgoraVideoFrame.FORMAT_TEXTURE_2D;
+                vf.timeStamp = System.currentTimeMillis();
+                vf.stride = 720;
+                vf.height = 1280;
+                vf.textureID = texture;
+                vf.syncMode = true;
+                vf.eglContext11 = eglContext;
+                vf.transform = transform;
+
+                boolean result = mRtcEngine.pushExternalVideoFrame(vf);
+                if (DBG) {
+                    Log.d(LOG_TAG, "onFrameAvailable " + eglContext + " " + rotation + " " + texture + " " + result);
+                }
+            }
+        });
+        mCustomizedGPUImageRenderer.setOnEGLContextHandler(new CustomizedGPUImageRenderer.OnEGLContextListener() {
+            @Override
+            public void onEGLContextReady(EGLContext eglContext) {
+                if (eglContext != null)
+                Log.d(LOG_TAG, "onEGLContextReady " + eglContext + " " + mJoined);
+
+                if (!mJoined) {
+                    joinChannel(); // Tutorial Step 4
+                    mJoined = true;
+                }
+            }
+        });
+        mCustomizedGPUImageRenderer.initCamera(0);
+        /*mCustomizedCameraRenderer.setOnFrameAvailableHandler(new CustomizedCameraRenderer.OnFrameAvailableListener() {
             @Override
             public void onFrameAvailable(int texture, EGLContext eglContext, int rotation) {
                 AgoraVideoFrame vf = new AgoraVideoFrame();
@@ -228,7 +261,7 @@ public class VideoChatViewActivity extends AppCompatActivity {
                     mJoined = true;
                 }
             }
-        });
+        });*/
 
         surfaceV.setZOrderMediaOverlay(true);
 
@@ -278,11 +311,11 @@ public class VideoChatViewActivity extends AppCompatActivity {
         if (iv.isSelected()) {
             iv.setSelected(false);
             iv.clearColorFilter();
-            mCustomizedCameraRenderer.setViewHiddenStatus(false);
+            mCustomizedGPUImageRenderer.setViewHiddenStatus(false);
         } else {
             iv.setSelected(true);
             iv.setColorFilter(getResources().getColor(R.color.colorPrimary), PorterDuff.Mode.MULTIPLY);
-            mCustomizedCameraRenderer.setViewHiddenStatus(true);
+            mCustomizedGPUImageRenderer.setViewHiddenStatus(true);
         }
     }
 }

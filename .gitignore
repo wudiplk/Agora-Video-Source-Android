@@ -46,3 +46,6 @@ cscope.out
 cscope.po.out
 tags
 
+# libs
+*.so
+*.jar
