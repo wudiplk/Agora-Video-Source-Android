@@ -115,6 +115,17 @@ public class TextureRenderer {
         mMVPMatrix[5] = (float) Math.cos(theta);
     }
 
+    /**
+     * image mirror
+     * @param x horizontal flip
+     * @param y vertical flip
+     */
+    public void flip(boolean x, boolean y) {
+        if (x || y) {
+            Matrix.scaleM(mMVPMatrix, 0, x ? -1 : 1, y ? -1 : 1, 1);
+        }
+    }
+
     public void draw(int texture) {
         GLES20.glUseProgram(mProgram);
 

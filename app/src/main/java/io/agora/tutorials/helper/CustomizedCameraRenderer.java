@@ -376,6 +376,9 @@ public class CustomizedCameraRenderer extends GLSurfaceView implements
             GLES20.glViewport(0, paddingHeight, targetWidth, targetHeight);
 
             mFboToView.rotate(rotation);
+            if (mCameraIndex == Camera.CameraInfo.CAMERA_FACING_BACK) {
+                mFboToView.flip(true, false);
+            }
 
             mFboToView.draw(mDstTexture);
 
