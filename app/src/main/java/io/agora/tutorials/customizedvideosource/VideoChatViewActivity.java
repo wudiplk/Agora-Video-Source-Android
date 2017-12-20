@@ -30,7 +30,7 @@ public class VideoChatViewActivity extends AppCompatActivity {
 
     private static final String LOG_TAG = VideoChatViewActivity.class.getSimpleName();
 
-    private static final boolean DBG = false;
+    private static final boolean DBG = true;
 
     private static final int PERMISSION_REQ_ID_RECORD_AUDIO = 22;
     private static final int PERMISSION_REQ_ID_CAMERA = PERMISSION_REQ_ID_RECORD_AUDIO + 1;
@@ -204,7 +204,12 @@ public class VideoChatViewActivity extends AppCompatActivity {
                 vf.textureID = texture;
                 vf.syncMode = true;
                 vf.eglContext11 = eglContext;
-                vf.transform = transform;
+                vf.transform = new float[]{
+                        1.0f, 0.0f, 0.0f, 0.0f,
+                        0.0f, 1.0f, 0.0f, 0.0f,
+                        0.0f, 0.0f, 1.0f, 0.0f,
+                        0.0f, 0.0f, 0.0f, 1.0f
+                };
 
                 boolean result = mRtcEngine.pushExternalVideoFrame(vf);
                 if (DBG) {

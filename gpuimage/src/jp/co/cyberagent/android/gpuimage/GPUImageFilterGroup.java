@@ -37,8 +37,6 @@ public class GPUImageFilterGroup extends GPUImageFilter {
 
     protected List<GPUImageFilter> mFilters;
     protected List<GPUImageFilter> mMergedFilters;
-    private int[] mFrameBuffers;
-    private int[] mFrameBufferTextures;
 
     private final FloatBuffer mGLCubeBuffer;
     private final FloatBuffer mGLTextureBuffer;
@@ -145,10 +143,10 @@ public class GPUImageFilterGroup extends GPUImageFilter {
 
         if (mMergedFilters != null && mMergedFilters.size() > 0) {
             size = mMergedFilters.size();
-            mFrameBuffers = new int[size - 1];
-            mFrameBufferTextures = new int[size - 1];
+            mFrameBuffers = new int[size];
+            mFrameBufferTextures = new int[size];
 
-            for (int i = 0; i < size - 1; i++) {
+            for (int i = 0; i < size; i++) {
                 GLES20.glGenFramebuffers(1, mFrameBuffers, i);
                 GLES20.glGenTextures(1, mFrameBufferTextures, i);
                 GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mFrameBufferTextures[i]);

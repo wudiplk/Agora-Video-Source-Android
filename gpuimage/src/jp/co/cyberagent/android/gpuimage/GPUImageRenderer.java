@@ -41,6 +41,8 @@ import java.util.Queue;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
+import jp.co.cyberagent.android.gpuimage.helper.OESTexture;
+import jp.co.cyberagent.android.gpuimage.helper.TextureRenderer;
 import jp.co.cyberagent.android.gpuimage.util.TextureRotationUtil;
 
 import static jp.co.cyberagent.android.gpuimage.util.TextureRotationUtil.TEXTURE_NO_ROTATION;
@@ -82,8 +84,6 @@ public class GPUImageRenderer implements Renderer, PreviewCallback {
     private float mBackgroundGreen = 0;
     private float mBackgroundBlue = 0;
 
-    private boolean mUpdateST = false;
-
     public GPUImageRenderer(final GPUImageFilter filter) {
         mFilter = filter;
         mRunOnDraw = new LinkedList<>();
@@ -122,27 +122,54 @@ public class GPUImageRenderer implements Renderer, PreviewCallback {
 
     private float[] videoTextureTransform = new float[16];
     boolean transformSetted = false;
+    private TextureRenderer mFboToView;
+    private TextureRenderer mCameraToFbo;
+    private int mFbo = 0;
+    private int mDstTexture = 0;
+    public final OESTexture mSrcTexture = new OESTexture();
 
     @Override
     public synchronized void onDrawFrame(final GL10 gl) {
-        //if (mUpdateST) {
-            GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
+        if (mCameraToFbo == null) {
+            mCameraToFbo = new TextureRenderer(true);
+        }
 
-            if (mSurfaceTexture != null) {
-                mSurfaceTexture.updateTexImage();
-                mSurfaceTexture.getTransformMatrix(videoTextureTransform);
-            }
+        if (mFboToView == null) {
+            mFboToView = new TextureRenderer(false);
+        }
 
-            runAll(mRunOnDraw);
-            mFilter.onDraw(mGLTextureId, mGLCubeBuffer, mGLTextureBuffer);
-            runAll(mRunOnDrawEnd);
+        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
+        runAll(mRunOnDraw);
 
-            mUpdateST = false;
+        if (mSurfaceTexture != null) {
+            mSurfaceTexture.updateTexImage();
+            mSurfaceTexture.getTransformMatrix(videoTextureTransform);
+        }
 
+        // Render to FBO
+        if (mFilter.getFrameBuffers().length > 0) {
+
+            mFbo = mFilter.getFrameBuffers()[0];
+            Log.i("TJY", "mFbo value :" + mFbo);
+            GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, mFbo);
+            mCameraToFbo.draw(mSrcTexture.getTextureId());
+        }
+
+        mFilter.onDraw(mGLTextureId, mGLCubeBuffer, mGLTextureBuffer);
+
+        // FBO draw to view
+        if (mFilter.getFrameBufferTextures().length > 0) {
+            GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
+            mDstTexture = mFilter.getFrameBufferTextures()[0];
+            mFboToView.draw(mDstTexture);
             if (null != onFrameAvailableListener) {
-                onFrameAvailableListener.onFrameAvailable(mGLTextureId, getRotation().asInt(), videoTextureTransform);
+                onFrameAvailableListener.onFrameAvailable(mDstTexture, getRotation().asInt(), videoTextureTransform);
             }
-        //}
+
+        }
+        GLES20.glFinish();
+
+        runAll(mRunOnDrawEnd);
         /*mSurfaceTexture.getTransformMatrix(videoTextureTransform);
         if (videoTextureTransform[0] == 1 && videoTextureTransform[5] == -1) {
             setRotation(Rotation.NORMAL, false, false);
@@ -207,12 +234,14 @@ public class GPUImageRenderer implements Renderer, PreviewCallback {
         runOnDraw(new Runnable() {
             @Override
             public void run() {
-                mGLTextureId = OpenGlUtils.createOESTextureID();
-                mSurfaceTexture = new SurfaceTexture(mGLTextureId);
-                mSurfaceTexture.setOnFrameAvailableListener(listener);
+                /*int[] textures = new int[1];
+                GLES20.glGenTextures(1, textures, 0);
+                mSurfaceTexture = new SurfaceTexture(textures[0]);*/
+                mSrcTexture.init();
+                mSurfaceTexture = new SurfaceTexture(mSrcTexture.getTextureId());
                 try {
                     camera.setPreviewTexture(mSurfaceTexture);
-                    //camera.setPreviewCallback(GPUImageRenderer.this);
+                    camera.setPreviewCallback(GPUImageRenderer.this);
                     camera.startPreview();
                 } catch (IOException e) {
                     e.printStackTrace();

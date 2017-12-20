@@ -196,7 +196,10 @@ public class CustomizedGPUImageRenderer extends GLSurfaceView implements
 
                 parameters.setPreviewSize(width, height);
                 if (cameraId == 0) {
-                    parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+                    List<String> supportedFocusModes = parameters.getSupportedFocusModes();
+                    if (supportedFocusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
+                        parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+                    }
                 }
                 camera.setParameters(parameters);
 

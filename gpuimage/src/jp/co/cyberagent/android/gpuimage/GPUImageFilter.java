@@ -60,6 +60,9 @@ public class GPUImageFilter {
     protected int mOutputHeight;
     private boolean mIsInitialized;
 
+    protected int[] mFrameBuffers;
+    protected int[] mFrameBufferTextures;
+
     public GPUImageFilter() {
         this(NO_FILTER_VERTEX_SHADER, NO_FILTER_FRAGMENT_SHADER);
     }
@@ -97,6 +100,14 @@ public class GPUImageFilter {
     public void onDestroy() {
     }
 
+    public int[] getFrameBuffers() {
+        return mFrameBuffers;
+    }
+
+    public int[] getFrameBufferTextures() {
+        return mFrameBufferTextures;
+    }
+
     public void onOutputSizeChanged(final int width, final int height) {
         mOutputWidth = width;
         mOutputHeight = height;
@@ -118,7 +129,7 @@ public class GPUImageFilter {
         GLES20.glEnableVertexAttribArray(mGLAttribTextureCoordinate);
         if (textureId != OpenGlUtils.NO_TEXTURE) {
             GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-            GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, textureId);
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureId);
             GLES20.glUniform1i(mGLUniformTexture, 0);
         }
         onDrawArraysPre();
