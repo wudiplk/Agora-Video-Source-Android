@@ -238,7 +238,7 @@ public class VideoChatViewActivity extends AppCompatActivity {
 
     // Tutorial Step 4
     private void joinChannel() {
-        mRtcEngine.setClientRole(Constants.CLIENT_ROLE_BROADCASTER, null);
+        mRtcEngine.setClientRole(Constants.CLIENT_ROLE_BROADCASTER);
         mRtcEngine.joinChannel(null, "CustomizedVideoSourceChannel1", "Extra Optional Data", 0); // if you do not specify the uid, we will generate the uid for you
     }
 

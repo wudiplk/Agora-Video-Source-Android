@@ -23,19 +23,7 @@
 <string name="agora_app_id"><#YOUR APP ID#></string>
 ```
 
-**然后**是集成 Agora 视频 SDK，集成方式有以下两种：
-
-- 首选集成方式：
-
-在项目对应的模块的 "app/build.gradle" 文件的依赖属性中加入通过 JCenter 自动集成 Agora 视频 SDK 的地址：
-
-```
-compile 'io.agora.rtc:full-sdk:2.0.0'
-```
-
-( 该示例程序已添加此链接地址，无需再添加，如果要在自己的应用中集成 Agora 视频 SDK，添加链接地址是最重要的一步。）
-
-- 次选集成方式：
+**然后**是集成 Agora 视频 SDK：
 
 第一步: 在 [Agora.io SDK](https://www.agora.io/cn/download/) 下载 **视频通话 + 直播 SDK**，解压后将其中的 libs 文件夹下的 *.jar 复制到本项目的 app/libs 下，其中的 libs 文件夹下的 arm64-v8a/x86/armeabi-v7a 复制到本项目的 app/src/main/jniLibs 下。
 
